@@ -75,6 +75,7 @@ public class CDVIonicKeyboard extends CordovaPlugin {
                     rootView = content.getRootView();
                     list = new OnGlobalLayoutListener() {
                         int previousHeightDiff = 0;
+                        int previousWebViewOverlap = -1;
                         @Override
                         public void onGlobalLayout() {
                             boolean resize = preferences.getBoolean("resizeOnFullScreen", false);
@@ -106,9 +107,17 @@ public class CDVIonicKeyboard extends CordovaPlugin {
 
                             int heightDiff = screenHeight - resultBottom;
 
+                            // The physical keyboard can include system bars outside the app WebView.
+                            View appWebView = webView.getView();
+                            int[] location = new int[2];
+                            appWebView.getLocationOnScreen(location);
+                            int viewBottom = location[1] + appWebView.getHeight();
+                            int webViewOverlap = Math.max(0, viewBottom - Math.max(location[1], resultBottom));
                             int pixelHeightDiff = (int)(heightDiff / density);
-                            if (pixelHeightDiff > 100 && pixelHeightDiff != previousHeightDiff) { // if more than 100 pixels, its probably a keyboard...
-                                String msg = "S" + Integer.toString(pixelHeightDiff);
+                            if (pixelHeightDiff > 100 && (pixelHeightDiff != previousHeightDiff ||
+                                    webViewOverlap != previousWebViewOverlap)) { // Preserve physical-height detection.
+                                String msg = "S" + Integer.toString(pixelHeightDiff) + "," +
+                                        Float.toString(webViewOverlap / density);
                                 result = new PluginResult(PluginResult.Status.OK, msg);
                                 result.setKeepCallback(true);
                                 callbackContext.sendPluginResult(result);
@@ -120,6 +129,7 @@ public class CDVIonicKeyboard extends CordovaPlugin {
                                 callbackContext.sendPluginResult(result);
                             }
                             previousHeightDiff = pixelHeightDiff;
+                            previousWebViewOverlap = webViewOverlap;
                         }
 
                         private void possiblyResizeChildOfContent() {

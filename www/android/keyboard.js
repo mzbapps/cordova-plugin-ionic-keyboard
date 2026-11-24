@@ -5,10 +5,11 @@ var argscheck = require('cordova/argscheck'),
 
 var Keyboard = function () {};
 
-Keyboard.fireOnShow = function (height) {
+Keyboard.fireOnShow = function (height, viewOverlap) {
     Keyboard.isVisible = true;
     cordova.fireWindowEvent('keyboardDidShow', {
-        'keyboardHeight': height
+        'keyboardHeight': height,
+        'keyboardViewOverlap': viewOverlap
     });
 
     // To support the keyboardAttach directive listening events
@@ -31,9 +32,10 @@ Keyboard.fireOnHiding = function () {
     cordova.fireWindowEvent('keyboardWillHide');
 };
 
-Keyboard.fireOnShowing = function (height) {
+Keyboard.fireOnShowing = function (height, viewOverlap) {
     cordova.fireWindowEvent('keyboardWillShow', {
-        'keyboardHeight': height
+        'keyboardHeight': height,
+        'keyboardViewOverlap': viewOverlap
     });
 };
 
@@ -67,9 +69,11 @@ channel.onCordovaReady.subscribe(function () {
     function success(msg) {
         var action = msg.charAt(0);
         if (action === 'S') {
-            var keyboardHeight = parseInt(msg.substr(1));
-            Keyboard.fireOnShowing(keyboardHeight);
-            Keyboard.fireOnShow(keyboardHeight);
+            var dimensions = msg.substr(1).split(',');
+            var keyboardHeight = parseInt(dimensions[0], 10);
+            var viewOverlap = dimensions.length > 1 ? parseFloat(dimensions[1]) : undefined;
+            Keyboard.fireOnShowing(keyboardHeight, viewOverlap);
+            Keyboard.fireOnShow(keyboardHeight, viewOverlap);
 
         } else if (action === 'H') {
             Keyboard.fireOnHiding();
